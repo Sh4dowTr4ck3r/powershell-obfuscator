@@ -1,0 +1,26 @@
+# Ignore temporary files and output
+*.tmp
+*.temp
+temp/
+output/
+
+# Ignore test files
+test_*.ps1
+*_test.ps1
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore IDE files
+.vscode/
+*.code-workspace
+
+# Ignore Windows specific
+Thumbs.db
+*.lnk
+
+# Ignore backup files
+*.bak
+*.backup
+*~
