@@ -45,6 +45,8 @@ Write-Host "Input: $InputFile" -ForegroundColor White
 
 # Initialize extraction success flag
 $extractionSuccess = $false
+$tempZip = ""
+$tempExtract = ""
 
 # Check if input file exists
 if (-not (Test-Path $InputFile)) {
@@ -85,7 +87,6 @@ try {
         # Create output directory if it doesn't exist
         if (-not (Test-Path $OutputDir)) {
             New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
-            Write-Host "✓ Created output directory: $OutputDir" -ForegroundColor Green
         }
         
         # Create temp extraction directory
@@ -101,14 +102,13 @@ try {
             foreach ($file in $extractedFiles) {
                 $outputPath = Join-Path $OutputDir $file.Name
                 Copy-Item $file.FullName $outputPath -Force
-                Write-Host "✓ Restored: $($file.Name)" -ForegroundColor Green
             }
             
-            Write-Host "`n🎉 DECRYPTION COMPLETE!" -ForegroundColor Green
-            Write-Host "📁 Files restored to: $OutputDir\" -ForegroundColor White
-            Write-Host "📋 Files restored: $($extractedFiles.Count)" -ForegroundColor White
+            Write-Host "`nDECRYPTION COMPLETE!" -ForegroundColor Green
+            Write-Host "Files restored to: $OutputDir\" -ForegroundColor White
+            Write-Host "Files restored: $($extractedFiles.Count)" -ForegroundColor White
         } else {
-            Write-Host "⚠️ No files found in archive" -ForegroundColor Yellow
+            Write-Host "No files found in archive" -ForegroundColor Yellow
         }
         
         # Mark successful extraction for cleanup
@@ -119,27 +119,28 @@ try {
         Write-Host "✗ Automatic extraction failed: $($_.Exception.Message)" -ForegroundColor Yellow
         $finalZip = "decrypted_$(Get-Random).zip"
         Copy-Item $tempZip $finalZip -Force
-        Write-Host "`n💾 ZIP file saved for manual extraction: $finalZip" -ForegroundColor Cyan
-        Write-Host "   Extract contents manually to get original files" -ForegroundColor Gray
+        Write-Host "`nZIP file saved for manual extraction: $finalZip" -ForegroundColor Cyan
+        Write-Host "Extract contents manually to get original files" -ForegroundColor Gray
         $extractionSuccess = $false
-    } finally {
-        # Always clean up temp extraction directory
-        if (Test-Path $tempExtract) {
-            Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
-            Write-Host "🧹 Cleaned up temp extraction directory" -ForegroundColor Gray
-        }
+
     }
     
 } catch {
-    Write-Host "✗ Error during decryption: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Error during decryption: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 } finally {
-    # Clean up temp file - always remove if extraction was successful
-    if ((Test-Path $tempZip) -and ($extractionSuccess -eq $true)) {
+    # Clean up temp extraction directory
+    if ((Test-Path $tempExtract) -and ($tempExtract -ne "")) {
+        Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    
+    # Clean up temp ZIP file - always remove if extraction was successful
+    if ((Test-Path $tempZip) -and ($extractionSuccess -eq $true) -and ($tempZip -ne "")) {
         Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
-        Write-Host "🧹 Cleaned up temporary files" -ForegroundColor Gray
-    } elseif (Test-Path $tempZip) {
-        Write-Host "💡 TIP: Temporary ZIP file preserved for manual extraction: $tempZip" -ForegroundColor Blue
-    }    
-    # Clean up any remaining temp extraction directories
-    Get-ChildItem "temp_extract_*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue}
+    } elseif ((Test-Path $tempZip) -and ($tempZip -ne "")) {
+        Write-Host "TIP: Temporary ZIP file preserved for manual extraction: $tempZip" -ForegroundColor Blue
+    }
+    
+    # Clean up any remaining temp extraction directories (fallback)
+    Get-ChildItem "temp_extract_*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+}
