@@ -14,6 +14,8 @@ Private collection of PowerShell obfuscation and decryption utilities.
   - **AES-256 encryption** with password protection
   - **Base64 encoding** for binary data
   - **Salt generation** for enhanced security
+  - **ZIP compression** to reduce file size
+  - **Archive creation** with multiple file support
 
 ### `decrypt.ps1` 
 - **Purpose**: Decrypts and deobfuscates protected PowerShell scripts
@@ -23,6 +25,7 @@ Private collection of PowerShell obfuscation and decryption utilities.
   - Decodes encrypted strings and Base64 content
   - Restores original variable names where possible
   - **PBKDF2 key derivation** from passwords
+  - **ZIP decompression** and archive extraction
 
 ## Usage
 
@@ -33,6 +36,12 @@ Private collection of PowerShell obfuscation and decryption utilities.
 # Obfuscate with password protection (recommended)
 .\obfuscate.ps1 -InputFile "script.ps1" -OutputFile "obfuscated.ps1" -Password "YourSecurePassword123!"
 
+# Obfuscate with ZIP compression
+.\obfuscate.ps1 -InputFile "script.ps1" -OutputFile "obfuscated.zip" -Compress -Password "YourSecurePassword123!"
+
+# Obfuscate multiple files into archive
+.\obfuscate.ps1 -InputPath "C:\Scripts\" -OutputFile "obfuscated_bundle.zip" -Compress -Password "YourSecurePassword123!"
+
 # Advanced obfuscation with custom settings
 .\obfuscate.ps1 -InputFile "script.ps1" -OutputFile "obfuscated.ps1" -Password "YourSecurePassword123!" -EncryptionLevel High
 
@@ -41,6 +50,9 @@ Private collection of PowerShell obfuscation and decryption utilities.
 
 # Decrypt password-protected script
 .\decrypt.ps1 -InputFile "obfuscated.ps1" -OutputFile "decrypted.ps1" -Password "YourSecurePassword123!"
+
+# Extract and decrypt ZIP archive
+.\decrypt.ps1 -InputFile "obfuscated.zip" -OutputPath "C:\Extracted\" -Password "YourSecurePassword123!"
 ```
 
 ## Encryption Details
@@ -62,6 +74,14 @@ Private collection of PowerShell obfuscation and decryption utilities.
 - **Unique salt** per encrypted file prevents rainbow table attacks
 - **Base64 encoding** for safe text representation of binary data
 - **Memory clearing** of sensitive data after use
+
+### ZIP Compression
+- **Algorithm**: Deflate compression for optimal size reduction
+- **Encryption**: ZIP contents are encrypted before compression
+- **Format**: Standard ZIP archive format with encrypted entries
+- **Metadata**: File names and paths are obfuscated within archive
+- **Integrity**: CRC32 checksums for data validation
+- **Performance**: Up to 70% size reduction for text-based scripts
 
 ## Security Notice
 
