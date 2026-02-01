@@ -83,35 +83,7 @@ Private collection of PowerShell obfuscation and decryption utilities.
 - **Integrity**: CRC32 checksums for data validation
 - **Performance**: Up to 70% size reduction for text-based scripts
 
-## Security Notice
 
-⚠️ **PRIVATE REPOSITORY** - These tools are for authorized security research and testing only.
-
-- Do not share outside authorized personnel
-- Use only on systems you own or have explicit permission to test
-- Follow all applicable laws and regulations
-- Maintain confidentiality of obfuscated code
-
-## Development Notes
-
-- Compatible with PowerShell 5.1 and PowerShell 7+
-- Designed for Windows environments
-- Regularly updated for latest obfuscation techniques
-- **Cryptographic libraries**: Uses .NET System.Security.Cryptography
-- **Performance**: Optimized for files up to 10MB
-- **Compatibility**: Generated scripts work on target systems without additional dependencies
-
-## Best Practices
-
-### Password Security
-- Use unique, strong passwords for each obfuscated script
-- Store passwords securely (password managers recommended)
-- Never hard-code passwords in other scripts
-- Consider using environment variables for automation
-
-### Operational Security
-- Test decryption before deployment
-- Keep backup copies of original scripts
 - Use appropriate encryption level for sensitivity level
 - Monitor for unauthorized access attempts
 
