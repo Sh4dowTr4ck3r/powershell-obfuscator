@@ -24,9 +24,15 @@ if (!(Test-Path $InputPath)) {
     exit 1
 }
 
+# Resolve to full path to avoid any path issues
+$InputPath = (Resolve-Path $InputPath).Path
+
+# Initialize success tracking
+$success = $true
+
 # Step 1: Compress to ZIP
 Write-Host "Step 1: Compressing to ZIP" -ForegroundColor Cyan
-$tempZip = "temp_$(Get-Random).zip"
+$tempZip = Join-Path (Get-Location) "temp_$(Get-Random).zip"
 
 try {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -38,8 +44,11 @@ try {
     $entryStream.Close()
     $fileStream.Close()
     $zip.Dispose()
+    Write-Host "✓ ZIP compression successful" -ForegroundColor Green
 } catch {
     Write-Host "✗ Failed to compress: $($_.Exception.Message)" -ForegroundColor Red
+    # Clean up any partial files
+    if (Test-Path $tempZip) { Remove-Item $tempZip -Force -ErrorAction SilentlyContinue }
     exit 1
 }
 
@@ -68,17 +77,19 @@ try {
         # Combine salt + IV + encrypted data
         $finalBytes = $salt + $iv + $encryptedData
         $aes.Dispose()
+        Write-Host "✓ AES-256 encryption successful" -ForegroundColor Green
     } else {
         $finalBytes = $zipBytes
+        Write-Host "✓ No encryption applied (no password)" -ForegroundColor Yellow
     }
 } catch {
     Write-Host "✗ Failed to encrypt: $($_.Exception.Message)" -ForegroundColor Red
-    Remove-Item $tempZip -ErrorAction SilentlyContinue
+    Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
     exit 1
 }
 
 # Step 3: Save encrypted data to file
-$outputFile = "$OutputName.$FakeExtension"
+$outputFile = Join-Path (Get-Location) "$OutputName.$FakeExtension"
 Write-Host "Step 3: Saving encrypted data to $outputFile" -ForegroundColor Cyan
 
 try {
@@ -87,22 +98,37 @@ try {
     
     # Create a simple text file with the encoded data
     [System.IO.File]::WriteAllText($outputFile, $encodedData, [System.Text.Encoding]::UTF8)
+    Write-Host "✓ Output file created successfully" -ForegroundColor Green
     
 } catch {
     Write-Host "✗ Failed to create output file: $($_.Exception.Message)" -ForegroundColor Red
+    $success = $false
 } finally {
-    # Clean up temp file
-    Remove-Item $tempZip -ErrorAction SilentlyContinue
+    # Clean up temp file - ALWAYS do this
+    if (Test-Path $tempZip) {
+        Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
+        Write-Host "✓ Temporary files cleaned up" -ForegroundColor Green
+    }
+    
+    # Exit if we failed to create output
+    if (-not $success) {
+        exit 1
+    }
 }
 
 Write-Host "`n🎭 OBFUSCATION COMPLETE! 🎭" -ForegroundColor Green
-Write-Host "📁 Obfuscated file: $outputFile" -ForegroundColor White
+Write-Host "📁 Obfuscated file: $([System.IO.Path]::GetFileName($outputFile))" -ForegroundColor White
 Write-Host "📋 Original size: $((Get-Item $InputPath).Length) bytes" -ForegroundColor White
-Write-Host "📊 Final size: $((Get-Item $outputFile).Length) bytes" -ForegroundColor White
+
+if (Test-Path $outputFile) {
+    Write-Host "📊 Final size: $((Get-Item $outputFile).Length) bytes" -ForegroundColor White
+} else {
+    Write-Host "📊 Final size: Could not determine" -ForegroundColor Yellow
+}
 
 if ($Password -ne "") {
     Write-Host "🔐 Password protection: AES-256 encryption" -ForegroundColor Yellow
 }
 
 Write-Host "`nTo extract:" -ForegroundColor Cyan
-Write-Host "Use: .\decrypt.ps1 -InputPath `"$outputFile`" -Password `"$Password`"" -ForegroundColor White
+Write-Host "Use: .\decrypt.ps1 -InputFile `"$([System.IO.Path]::GetFileName($outputFile))`" -Password `"$Password`"" -ForegroundColor White

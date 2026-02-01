@@ -40,7 +40,7 @@ function Decrypt-Data {
     }
 }
 
-Write-Host "🔄 DECRYPTING OBFUSCATED FILE" -ForegroundColor Cyan
+Write-Host " DECRYPTING OBFUSCATED FILE" -ForegroundColor Cyan
 Write-Host "Input: $InputFile" -ForegroundColor White
 
 # Initialize extraction success flag
@@ -48,7 +48,7 @@ $extractionSuccess = $false
 
 # Check if input file exists
 if (-not (Test-Path $InputFile)) {
-    Write-Host "✗ Input file not found: $InputFile" -ForegroundColor Red
+    Write-Host " Input file not found: $InputFile" -ForegroundColor Red
     exit 1
 }
 
@@ -73,40 +73,43 @@ try {
     
     # Step 4: Save as temporary ZIP
     Write-Host "`nStep 4: Creating temporary ZIP file" -ForegroundColor Yellow
-    $tempZip = "temp_restored_$(Get-Random).zip"
+    $tempZip = Join-Path (Get-Location) "temp_restored_$(Get-Random).zip"
     [System.IO.File]::WriteAllBytes($tempZip, $zipBytes)
     
     # Step 5: Extract and save as hardcoded filename
-    Write-Host "`nStep 5: Extracting and saving as 'tester'" -ForegroundColor Yellow
+    Write-Host "`nStep 5: Extracting to '$OutputDir' folder" -ForegroundColor Yellow
     
     try {
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         
+        # Create output directory if it doesn't exist
+        if (-not (Test-Path $OutputDir)) {
+            New-Item -ItemType Directory -Path $OutputDir -Force | Out-Null
+            Write-Host "✓ Created output directory: $OutputDir" -ForegroundColor Green
+        }
+        
         # Create temp extraction directory
-        $tempExtract = "temp_extract_$(Get-Random)"
+        $tempExtract = Join-Path (Get-Location) "temp_extract_$(Get-Random)"
         New-Item -ItemType Directory -Path $tempExtract -Force | Out-Null
         
         [System.IO.Compression.ZipFile]::ExtractToDirectory($tempZip, $tempExtract)
         
-        # Find the first .exe file and rename it to "tester.exe"
-        $extractedFiles = Get-ChildItem $tempExtract -Recurse
-        $exeFile = $extractedFiles | Where-Object { $_.Extension -eq ".exe" } | Select-Object -First 1
+        # Get all extracted files
+        $extractedFiles = Get-ChildItem $tempExtract -Recurse -File
         
-        if ($exeFile) {
-            Copy-Item $exeFile.FullName "tester.exe" -Force
-        } else {
-            # If no .exe found, just copy the first file as "tester"
-            $firstFile = $extractedFiles | Select-Object -First 1
-            if ($firstFile) {
-                Copy-Item $firstFile.FullName "tester" -Force
+        if ($extractedFiles.Count -gt 0) {
+            foreach ($file in $extractedFiles) {
+                $outputPath = Join-Path $OutputDir $file.Name
+                Copy-Item $file.FullName $outputPath -Force
+                Write-Host "✓ Restored: $($file.Name)" -ForegroundColor Green
             }
+            
+            Write-Host "`n🎉 DECRYPTION COMPLETE!" -ForegroundColor Green
+            Write-Host "📁 Files restored to: $OutputDir\" -ForegroundColor White
+            Write-Host "📋 Files restored: $($extractedFiles.Count)" -ForegroundColor White
+        } else {
+            Write-Host "⚠️ No files found in archive" -ForegroundColor Yellow
         }
-        
-        # Clean up temp extraction directory
-        Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
-        
-        Write-Host "`n🎉 DECRYPTION COMPLETE!" -ForegroundColor Green
-        Write-Host "📁 Original file restored as: tester.exe" -ForegroundColor White
         
         # Mark successful extraction for cleanup
         $extractionSuccess = $true
@@ -116,9 +119,15 @@ try {
         Write-Host "✗ Automatic extraction failed: $($_.Exception.Message)" -ForegroundColor Yellow
         $finalZip = "decrypted_$(Get-Random).zip"
         Copy-Item $tempZip $finalZip -Force
-        Write-Host "`n💡 ZIP file saved for manual extraction: $finalZip" -ForegroundColor Cyan
-        Write-Host "   Extract and rename the .exe file to 'tester.exe'" -ForegroundColor Gray
+        Write-Host "`n💾 ZIP file saved for manual extraction: $finalZip" -ForegroundColor Cyan
+        Write-Host "   Extract contents manually to get original files" -ForegroundColor Gray
         $extractionSuccess = $false
+    } finally {
+        # Always clean up temp extraction directory
+        if (Test-Path $tempExtract) {
+            Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "🧹 Cleaned up temp extraction directory" -ForegroundColor Gray
+        }
     }
     
 } catch {
@@ -131,5 +140,6 @@ try {
         Write-Host "🧹 Cleaned up temporary files" -ForegroundColor Gray
     } elseif (Test-Path $tempZip) {
         Write-Host "💡 TIP: Temporary ZIP file preserved for manual extraction: $tempZip" -ForegroundColor Blue
-    }
-}
+    }    
+    # Clean up any remaining temp extraction directories
+    Get-ChildItem "temp_extract_*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue}
